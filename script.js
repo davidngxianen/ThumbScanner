@@ -50,6 +50,7 @@ function playChime(notes, { noteDuration = 0.12, gap = 0.09, type = 'sine', gain
 }
 
 const sfx = {
+  holdSuccess: () => playChime([660, 880, 1100], { noteDuration: 0.1, gap: 0.08, gain: 0.15 }),
   scanPing: () => playTone({ freq: 260, freqEnd: 900, duration: 0.32, type: 'sine', gain: 0.09 }),
   notDetected: () => playChime([260, 170], { noteDuration: 0.15, gap: 0.13, type: 'square', gain: 0.08 }),
   detected: () => playChime([440, 660, 880], { noteDuration: 0.11, gap: 0.09, gain: 0.14 }),
@@ -249,6 +250,7 @@ function completeScan() {
   thumbSub.style.opacity = '0';
   thumbTitle.style.opacity = '0';
   thumbSuccess.classList.add('show');
+  sfx.holdSuccess();
 }
 
 function resetThumbScreen() {

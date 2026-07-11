@@ -167,6 +167,40 @@ body {
   50% { opacity: 1; transform: scale(1); }
 }
 
+/* ---------- Post-verification transition ---------- */
+
+#screen-collecting {
+  background: var(--bg);
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.collecting-status {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.collecting-loading {
+  display: flex;
+  gap: 6px;
+}
+
+.collecting-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  animation: welcomeDotPulse 1.2s ease-in-out infinite;
+}
+
+.collecting-dot:nth-child(2) { animation-delay: .15s; }
+.collecting-dot:nth-child(3) { animation-delay: .3s; }
+
 #screen-lock {
   background: var(--bg);
   justify-content: space-between;
@@ -655,6 +689,10 @@ body {
 .thumb-btn.success {
   color: var(--success);
   border-color: rgba(31, 157, 85, .5);
+}
+
+.thumb-btn.hidden {
+  display: none;
 }
 
 .ring {

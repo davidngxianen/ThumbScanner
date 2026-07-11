@@ -284,7 +284,7 @@ function completeScan() {
   holding = false;
   cancelAnimationFrame(holdRAF);
   thumbBtn.classList.remove('holding');
-  thumbBtn.classList.add('success');
+  thumbBtn.classList.add('success', 'hidden');
   thumbSub.style.opacity = '0';
   thumbSuccess.classList.add('show');
   stopHoldTone();
@@ -294,7 +294,7 @@ function completeScan() {
 function resetThumbScreen() {
   holding = false;
   cancelAnimationFrame(holdRAF);
-  thumbBtn.classList.remove('holding', 'success');
+  thumbBtn.classList.remove('holding', 'success', 'hidden');
   setRing(0);
   thumbSub.style.opacity = '1';
   thumbSub.textContent = 'Touch and hold sensor';
@@ -349,6 +349,7 @@ scanAction.addEventListener('click', () => {
 
 function runScan() {
   scanAction.disabled = true;
+  scanAction.classList.add('hidden');
   padStatus.className = 'detect-status';
   padStatus.textContent = 'Scanning...';
   resultNumber.classList.remove('show');
@@ -366,6 +367,7 @@ function runScan() {
       padStatus.textContent = 'Not Detected';
       padStatus.classList.add('not-detected');
       scanAction.disabled = false;
+      scanAction.classList.remove('hidden');
       sfx.notDetected();
     } else {
       scanField.classList.add('detected');
@@ -401,7 +403,7 @@ function startNumberReveal() {
   resultNumber.classList.add('show');
 
   flickerInterval = setInterval(() => {
-    resultNumber.textContent = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+    resultNumber.textContent = String(Math.floor(Math.random() * 53)).padStart(2, '0');
     sfx.flickerTick();
   }, 80);
 
@@ -458,13 +460,29 @@ function submitResultFeedback(correct) {
   feedbackCorrect.disabled = true;
   feedbackWrong.disabled = true;
   setLastScanCorrectness(correct);
-  padStatus.className = 'detect-status';
-  padStatus.textContent = correct ? 'Marked correct' : 'Marked incorrect';
   hideResultFeedback();
+  startCollectingSequence();
 }
 
 feedbackCorrect.addEventListener('click', () => submitResultFeedback(true));
 feedbackWrong.addEventListener('click', () => submitResultFeedback(false));
+
+/* ---------------- Post-verification transition ---------------- */
+const collectingStatus = document.getElementById('collecting-status');
+const COLLECTING_MS = 2200;
+const RETURNING_MS = 1800;
+
+function startCollectingSequence() {
+  collectingStatus.textContent = 'Collecting data';
+  showScreenWithReveal('screen-collecting');
+
+  setTimeout(() => {
+    collectingStatus.textContent = 'Returning to home screen';
+    setTimeout(() => {
+      showScreenWithReveal('screen-home');
+    }, RETURNING_MS);
+  }, COLLECTING_MS);
+}
 
 /* ---------------- Live scan activity (home dashboard) ---------------- */
 const HISTORY_KEY = 'vitalscan-scan-history';

@@ -115,34 +115,13 @@ function showScreen(id) {
 }
 
 // Same crossfade as showScreen, plus a slide/scale reveal animation on the
-// incoming screen — used for the more deliberate transitions (welcome to
-// lock, lock to home) rather than every screen switch.
+// incoming screen — used for the more deliberate transitions (logout to
+// login, lock to home) rather than every screen switch.
 function showScreenWithReveal(id) {
   const el = document.getElementById(id);
   el.classList.add('screen-reveal');
   showScreen(id);
   el.addEventListener('animationend', () => el.classList.remove('screen-reveal'), { once: true });
-}
-
-/* ---------------- Welcome / splash ---------------- */
-const WELCOME_MS = 4000;
-
-function leaveWelcome() {
-  clearTimeout(welcomeTimer);
-  // No screen-level reveal here — the login screen's own elements
-  // (mark, wordmark, caution text, login button) already animate in
-  // with their own staggered fade-up delays.
-  showScreen('screen-login');
-}
-
-let welcomeTimer = setTimeout(leaveWelcome, WELCOME_MS);
-
-document.getElementById('screen-welcome').addEventListener('click', leaveWelcome);
-
-function goToWelcome() {
-  showScreenWithReveal('screen-welcome');
-  clearTimeout(welcomeTimer);
-  welcomeTimer = setTimeout(leaveWelcome, WELCOME_MS);
 }
 
 /* ---------------- Login ---------------- */
@@ -238,7 +217,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   resetLockScreen();
   resetThumbScreen();
   resetDetectScreen();
-  goToWelcome();
+  showScreenWithReveal('screen-login');
 });
 
 document.getElementById('start-scan-card').addEventListener('click', () => {

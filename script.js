@@ -23,6 +23,15 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
+/* ---------------- Welcome / splash ---------------- */
+const WELCOME_MS = 4000;
+let welcomeTimer = setTimeout(() => showScreen('screen-lock'), WELCOME_MS);
+
+document.getElementById('screen-welcome').addEventListener('click', () => {
+  clearTimeout(welcomeTimer);
+  showScreen('screen-lock');
+});
+
 /* ---------------- Lock screen / passcode ---------------- */
 let entered = [];
 const dotsWrap = document.getElementById('dots');

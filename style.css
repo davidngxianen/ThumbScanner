@@ -78,6 +78,86 @@ body {
 
 /* ---------- Lock screen ---------- */
 
+/* ---------- Welcome / splash ---------- */
+
+#screen-welcome {
+  background: var(--bg);
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+.welcome-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  opacity: 0;
+  animation: welcomeFadeScale .6s ease forwards;
+}
+
+.welcome-brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  opacity: 0;
+  animation: welcomeFadeUp .6s ease forwards;
+  animation-delay: .3s;
+}
+
+.welcome-caution {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 280px;
+  opacity: 0;
+  animation: welcomeFadeUp .6s ease forwards;
+  animation-delay: .8s;
+}
+
+.welcome-loading {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  opacity: 0;
+  animation: welcomeFadeUp .5s ease forwards;
+  animation-delay: 1.4s;
+}
+
+.welcome-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  animation: welcomeDotPulse 1.2s ease-in-out infinite;
+}
+
+.welcome-dot:nth-child(2) { animation-delay: .15s; }
+.welcome-dot:nth-child(3) { animation-delay: .3s; }
+
+@keyframes welcomeFadeScale {
+  from { opacity: 0; transform: scale(.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes welcomeFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes welcomeDotPulse {
+  0%, 100% { opacity: .25; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
 #screen-lock {
   background: var(--bg);
   justify-content: space-between;
@@ -165,6 +245,7 @@ body {
   grid-template-columns: repeat(3, 76px);
   grid-auto-rows: 76px;
   gap: 22px;
+  margin-top: clamp(32px, 7vh, 64px);
   margin-bottom: 6vh;
   justify-content: center;
 }

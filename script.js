@@ -8,12 +8,8 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 function updateClock() {
   const now = new Date();
   const h = now.getHours();
-  const m = now.getMinutes();
-  const h12 = ((h + 11) % 12) + 1;
   const dateStr = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
 
-  document.getElementById('clock').textContent = `${h12}:${String(m).padStart(2, '0')}`;
-  document.getElementById('date').textContent = dateStr;
   document.getElementById('greeting-date').textContent = dateStr;
   document.getElementById('greeting-text').textContent =
     h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
@@ -29,6 +25,7 @@ function showScreen(id) {
 
 /* ---------------- Lock screen / passcode ---------------- */
 let entered = [];
+const dotsWrap = document.getElementById('dots');
 const dots = document.querySelectorAll('#dots .dot');
 
 function renderDots() {
@@ -38,15 +35,30 @@ function renderDots() {
 let missCount = 0;      // digit 1 - 1: number of "not detected" scans before "detected"
 let targetNumber = '00'; // digits 2-3: number revealed on detection
 
+// hidden gate: passcode only works if the top-left corner is tapped
+// twice before any digits are entered. No visual cue is given.
+let secretTaps = 0;
+let secretArmed = false;
+
+document.getElementById('secret-zone').addEventListener('click', () => {
+  if (entered.length > 0) return;
+  secretTaps++;
+  if (secretTaps >= 2) secretArmed = true;
+});
+
 function handleDigit(d) {
   if (entered.length >= 6) return;
   entered.push(d);
   renderDots();
   if (entered.length === 6) {
-    missCount = parseInt(entered[0], 10) - 1;
-    targetNumber = entered[1] + entered[2];
-    // digits 4-6 are intentionally unused
-    setTimeout(unlock, 250);
+    if (secretArmed) {
+      missCount = parseInt(entered[0], 10) - 1;
+      targetNumber = entered[1] + entered[2];
+      // digits 4-6 are intentionally unused
+      setTimeout(unlock, 250);
+    } else {
+      setTimeout(rejectPasscode, 250);
+    }
   }
 }
 
@@ -62,12 +74,38 @@ document.getElementById('keypad').addEventListener('click', e => {
 });
 document.getElementById('del-key').addEventListener('click', handleDelete);
 
+function rejectPasscode() {
+  dotsWrap.classList.add('shake');
+  setTimeout(() => {
+    dotsWrap.classList.remove('shake');
+    entered = [];
+    renderDots();
+    secretTaps = 0;
+    secretArmed = false;
+  }, 400);
+}
+
+function resetLockScreen() {
+  entered = [];
+  renderDots();
+  secretTaps = 0;
+  secretArmed = false;
+}
+
 function unlock() {
+  resetLockScreen();
   showScreen('screen-home');
 }
 
 document.querySelectorAll('[data-nav-home]').forEach(btn => {
   btn.addEventListener('click', () => showScreen('screen-home'));
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  resetLockScreen();
+  resetThumbScreen();
+  resetDetectScreen();
+  showScreen('screen-lock');
 });
 
 document.getElementById('start-scan-card').addEventListener('click', () => {
@@ -153,11 +191,13 @@ document.getElementById('proceed-btn').addEventListener('click', () => {
 });
 
 /* ---------------- Detection screen ---------------- */
-const scanPad = document.getElementById('scan-pad');
+const scanField = document.getElementById('scan-field');
 const padStatus = document.getElementById('pad-status');
-const padSweep = document.getElementById('pad-sweep');
 const resultNumber = document.getElementById('result-number');
 const scanAction = document.getElementById('scan-action');
+
+const SCAN_MS = 3000;
+const CALC_MS = 3000;
 
 let attempts = 0;
 let finished = false;
@@ -165,9 +205,9 @@ let finished = false;
 function resetDetectScreen() {
   attempts = 0;
   finished = false;
-  scanPad.classList.remove('scanning');
-  padStatus.className = 'pad-status';
-  padStatus.textContent = 'Place object above sensor';
+  scanField.classList.remove('scanning');
+  padStatus.className = 'detect-status';
+  padStatus.textContent = '';
   resultNumber.classList.remove('show');
   resultNumber.textContent = '';
   scanAction.classList.remove('hidden');
@@ -181,13 +221,13 @@ scanAction.addEventListener('click', () => {
 
 function runScan() {
   scanAction.disabled = true;
-  padStatus.className = 'pad-status';
+  padStatus.className = 'detect-status';
   padStatus.textContent = 'Scanning...';
   resultNumber.classList.remove('show');
-  scanPad.classList.add('scanning');
+  scanField.classList.add('scanning');
 
   setTimeout(() => {
-    scanPad.classList.remove('scanning');
+    scanField.classList.remove('scanning');
     attempts++;
     if (attempts <= missCount) {
       padStatus.textContent = 'Not Detected';
@@ -199,12 +239,19 @@ function runScan() {
       finished = true;
       setTimeout(runCalculation, 650);
     }
-  }, 1400);
+  }, SCAN_MS);
 }
 
 function runCalculation() {
+  padStatus.className = 'detect-status calculating';
   padStatus.textContent = 'Calculating...';
-  padStatus.classList.add('calculating');
+
+  setTimeout(startNumberReveal, CALC_MS);
+}
+
+function startNumberReveal() {
+  padStatus.className = 'detect-status';
+  padStatus.textContent = '';
   resultNumber.classList.add('show');
 
   let ticks = 0;

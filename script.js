@@ -212,6 +212,7 @@ function resetDetectScreen() {
   resultNumber.textContent = '';
   scanAction.classList.remove('hidden');
   scanAction.disabled = false;
+  hideResultFeedback();
 }
 
 scanAction.addEventListener('click', () => {
@@ -264,9 +265,37 @@ function startNumberReveal() {
       resultNumber.textContent = targetNumber;
       scanAction.classList.add('hidden');
       recordScanResult(parseInt(targetNumber, 10));
+      showResultFeedback();
     }
   }, 90);
 }
+
+/* ---------------- Result correctness feedback ---------------- */
+const resultFeedback = document.getElementById('result-feedback');
+const feedbackCorrect = document.getElementById('feedback-correct');
+const feedbackWrong = document.getElementById('feedback-wrong');
+
+function showResultFeedback() {
+  feedbackCorrect.disabled = false;
+  feedbackWrong.disabled = false;
+  resultFeedback.classList.add('show');
+}
+
+function hideResultFeedback() {
+  resultFeedback.classList.remove('show');
+}
+
+function submitResultFeedback(correct) {
+  feedbackCorrect.disabled = true;
+  feedbackWrong.disabled = true;
+  setLastScanCorrectness(correct);
+  padStatus.className = 'detect-status';
+  padStatus.textContent = correct ? 'Marked correct' : 'Marked incorrect';
+  hideResultFeedback();
+}
+
+feedbackCorrect.addEventListener('click', () => submitResultFeedback(true));
+feedbackWrong.addEventListener('click', () => submitResultFeedback(false));
 
 /* ---------------- Live scan activity (home dashboard) ---------------- */
 const HISTORY_KEY = 'vitalscan-scan-history';
@@ -275,39 +304,54 @@ const HISTORY_LIMIT = 20;
 const insightBadge = document.getElementById('insight-badge');
 const insightCount = document.getElementById('insight-count');
 const insightAvg = document.getElementById('insight-avg');
+const insightAccuracy = document.getElementById('insight-accuracy');
 const insightChart = document.getElementById('insight-chart');
+const insightLegend = document.getElementById('insight-legend');
 const insightEmpty = document.getElementById('insight-empty');
 
 function loadScanHistory() {
   try {
     const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    return Array.isArray(arr) ? arr.slice(-HISTORY_LIMIT) : [];
+    if (!Array.isArray(arr)) return [];
+    return arr.slice(-HISTORY_LIMIT).map(e => (typeof e === 'number' ? { value: e, correct: null } : e));
   } catch {
     return [];
   }
 }
 
+function saveScanHistory(history) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-HISTORY_LIMIT)));
+}
+
 function recordScanResult(value) {
   const history = loadScanHistory();
-  history.push(value);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-HISTORY_LIMIT)));
+  history.push({ value, correct: null });
+  saveScanHistory(history);
+  renderInsightChart();
+}
+
+function setLastScanCorrectness(correct) {
+  const history = loadScanHistory();
+  if (!history.length) return;
+  history[history.length - 1].correct = correct;
+  saveScanHistory(history);
   renderInsightChart();
 }
 
 let insightTooltip = null;
 let insightTooltipTimer = null;
 
-function showInsightTooltip(bar) {
+function showInsightTooltip(point) {
   if (!insightTooltip) {
     insightTooltip = document.createElement('div');
     insightTooltip.className = 'insight-tooltip';
     document.querySelector('.insight-card').appendChild(insightTooltip);
   }
-  const barRect = bar.getBoundingClientRect();
+  const pointRect = point.getBoundingClientRect();
   const cardRect = document.querySelector('.insight-card').getBoundingClientRect();
-  insightTooltip.textContent = bar.dataset.value;
-  insightTooltip.style.left = `${barRect.left - cardRect.left + barRect.width / 2}px`;
-  insightTooltip.style.top = `${barRect.top - cardRect.top}px`;
+  insightTooltip.textContent = point.dataset.value;
+  insightTooltip.style.left = `${pointRect.left - cardRect.left + pointRect.width / 2}px`;
+  insightTooltip.style.top = `${pointRect.top - cardRect.top}px`;
   insightTooltip.classList.add('show');
   clearTimeout(insightTooltipTimer);
   insightTooltipTimer = setTimeout(() => insightTooltip.classList.remove('show'), 1600);
@@ -324,7 +368,9 @@ function renderInsightChart() {
   if (!history.length) {
     insightCount.textContent = '0';
     insightAvg.textContent = '--';
+    insightAccuracy.textContent = '--';
     insightBadge.classList.add('hidden');
+    insightLegend.classList.add('hidden');
     insightEmpty.classList.remove('hidden');
     insightChart.classList.add('hidden');
     insightChart.innerHTML = '';
@@ -332,19 +378,29 @@ function renderInsightChart() {
   }
 
   insightBadge.classList.remove('hidden');
+  insightLegend.classList.remove('hidden');
   insightEmpty.classList.add('hidden');
   insightChart.classList.remove('hidden');
 
   insightCount.textContent = String(history.length);
-  const avg = Math.round(history.reduce((a, b) => a + b, 0) / history.length);
+  const avg = Math.round(history.reduce((a, b) => a + b.value, 0) / history.length);
   insightAvg.textContent = String(avg);
+
+  const reviewed = history.filter(e => e.correct !== null);
+  if (reviewed.length) {
+    const correctCount = reviewed.filter(e => e.correct).length;
+    insightAccuracy.textContent = `${Math.round((correctCount / reviewed.length) * 100)} %`;
+  } else {
+    insightAccuracy.textContent = '--';
+  }
 
   const W = 200, BASE_Y = 60, TOP_PAD = 4;
   const slot = W / HISTORY_LIMIT;
-  const points = history.map((val, i) => ({
+  const points = history.map((entry, i) => ({
     x: i * slot + slot / 2,
-    y: BASE_Y - (val / 100) * (BASE_Y - TOP_PAD),
-    val,
+    y: BASE_Y - (entry.value / 100) * (BASE_Y - TOP_PAD),
+    val: entry.value,
+    correct: entry.correct,
   }));
 
   let markup = `<line x1="0" y1="${BASE_Y}" x2="${W}" y2="${BASE_Y}" class="insight-baseline" />`;
@@ -358,7 +414,8 @@ function renderInsightChart() {
   }
 
   points.forEach(p => {
-    markup += `<circle class="insight-point" data-value="${p.val}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="2.6" />`;
+    const statusClass = p.correct === true ? 'correct' : p.correct === false ? 'wrong' : '';
+    markup += `<circle class="insight-point ${statusClass}" data-value="${p.val}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="2.6" />`;
   });
 
   insightChart.innerHTML = markup;

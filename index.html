@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <title>Scanner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6fb">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="style.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -96,8 +96,17 @@
         <span class="insight-stat-value" id="insight-avg">--</span>
         <span class="insight-stat-label">Avg result</span>
       </div>
+      <div class="insight-stat">
+        <span class="insight-stat-value" id="insight-accuracy">--</span>
+        <span class="insight-stat-label">Accuracy</span>
+      </div>
     </div>
     <svg class="insight-chart hidden" id="insight-chart" viewBox="0 0 200 64" preserveAspectRatio="none"></svg>
+    <div class="insight-legend hidden" id="insight-legend">
+      <span class="insight-legend-item"><span class="insight-swatch correct"></span>Correct</span>
+      <span class="insight-legend-item"><span class="insight-swatch wrong"></span>Flagged</span>
+      <span class="insight-legend-item"><span class="insight-swatch pending"></span>Pending</span>
+    </div>
     <div class="insight-empty" id="insight-empty">Run a scan to see live results</div>
   </div>
 
@@ -144,6 +153,15 @@
   </div>
 
   <button class="scan-action" id="scan-action">Scan</button>
+
+  <div class="result-feedback" id="result-feedback">
+    <button class="feedback-btn feedback-correct" id="feedback-correct" aria-label="mark result correct">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M4 12.5l5 5.5L20 6"/></svg>
+    </button>
+    <button class="feedback-btn feedback-wrong" id="feedback-wrong" aria-label="mark result incorrect">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
 </section>
 
 <script src="script.js"></script>

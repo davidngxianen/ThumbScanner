@@ -18,6 +18,13 @@
 <section id="screen-lock" class="screen active">
   <button class="secret-zone" id="secret-zone" aria-hidden="true" tabindex="-1"></button>
 
+  <div class="lock-brand">
+    <span class="brand-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3.5 12h3l2-6 3 12 2-9 1.5 3H21" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="brand-name">VitalScan</span>
+  </div>
+
   <div class="lock-mid">
     <div class="lock-icon">
       <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M12 17a2 2 0 002-2 2 2 0 00-2-2 2 2 0 00-2 2 2 2 0 002 2m6-9a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h1V6a5 5 0 0110 0v2h1M12 3a3 3 0 00-3 3v2h6V6a3 3 0 00-3-3z"/></svg>
@@ -75,11 +82,23 @@
     <span class="scan-card-arrow">&rsaquo;</span>
   </button>
 
-  <div class="stat-row">
-    <div class="stat-card">
-      <div class="stat-label">Calibration</div>
-      <div class="stat-value">Today</div>
+  <div class="insight-card">
+    <div class="insight-header">
+      <span class="insight-title">Scan Activity</span>
+      <span class="insight-badge hidden" id="insight-badge"><span aria-hidden="true">✓</span> 100% Detected</span>
     </div>
+    <div class="insight-stats">
+      <div class="insight-stat">
+        <span class="insight-stat-value" id="insight-count">0</span>
+        <span class="insight-stat-label">Scans</span>
+      </div>
+      <div class="insight-stat">
+        <span class="insight-stat-value" id="insight-avg">--</span>
+        <span class="insight-stat-label">Avg result</span>
+      </div>
+    </div>
+    <svg class="insight-chart hidden" id="insight-chart" viewBox="0 0 200 64" preserveAspectRatio="none"></svg>
+    <div class="insight-empty" id="insight-empty">Run a scan to see live results</div>
   </div>
 
   <div class="home-footer">Designed by David Ng</div>

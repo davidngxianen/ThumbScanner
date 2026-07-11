@@ -227,9 +227,9 @@ function runScan() {
   scanField.classList.add('scanning');
 
   setTimeout(() => {
-    scanField.classList.remove('scanning');
     attempts++;
     if (attempts <= missCount) {
+      scanField.classList.remove('scanning');
       padStatus.textContent = 'Not Detected';
       padStatus.classList.add('not-detected');
       scanAction.disabled = false;
@@ -263,6 +263,105 @@ function startNumberReveal() {
       clearInterval(interval);
       resultNumber.textContent = targetNumber;
       scanAction.classList.add('hidden');
+      recordScanResult(parseInt(targetNumber, 10));
     }
   }, 90);
 }
+
+/* ---------------- Live scan activity (home dashboard) ---------------- */
+const HISTORY_KEY = 'vitalscan-scan-history';
+const HISTORY_LIMIT = 20;
+
+const insightBadge = document.getElementById('insight-badge');
+const insightCount = document.getElementById('insight-count');
+const insightAvg = document.getElementById('insight-avg');
+const insightChart = document.getElementById('insight-chart');
+const insightEmpty = document.getElementById('insight-empty');
+
+function loadScanHistory() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    return Array.isArray(arr) ? arr.slice(-HISTORY_LIMIT) : [];
+  } catch {
+    return [];
+  }
+}
+
+function recordScanResult(value) {
+  const history = loadScanHistory();
+  history.push(value);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-HISTORY_LIMIT)));
+  renderInsightChart();
+}
+
+let insightTooltip = null;
+let insightTooltipTimer = null;
+
+function showInsightTooltip(bar) {
+  if (!insightTooltip) {
+    insightTooltip = document.createElement('div');
+    insightTooltip.className = 'insight-tooltip';
+    document.querySelector('.insight-card').appendChild(insightTooltip);
+  }
+  const barRect = bar.getBoundingClientRect();
+  const cardRect = document.querySelector('.insight-card').getBoundingClientRect();
+  insightTooltip.textContent = bar.dataset.value;
+  insightTooltip.style.left = `${barRect.left - cardRect.left + barRect.width / 2}px`;
+  insightTooltip.style.top = `${barRect.top - cardRect.top}px`;
+  insightTooltip.classList.add('show');
+  clearTimeout(insightTooltipTimer);
+  insightTooltipTimer = setTimeout(() => insightTooltip.classList.remove('show'), 1600);
+}
+
+insightChart.addEventListener('click', e => {
+  const point = e.target.closest('.insight-point');
+  if (point) showInsightTooltip(point);
+});
+
+function renderInsightChart() {
+  const history = loadScanHistory();
+
+  if (!history.length) {
+    insightCount.textContent = '0';
+    insightAvg.textContent = '--';
+    insightBadge.classList.add('hidden');
+    insightEmpty.classList.remove('hidden');
+    insightChart.classList.add('hidden');
+    insightChart.innerHTML = '';
+    return;
+  }
+
+  insightBadge.classList.remove('hidden');
+  insightEmpty.classList.add('hidden');
+  insightChart.classList.remove('hidden');
+
+  insightCount.textContent = String(history.length);
+  const avg = Math.round(history.reduce((a, b) => a + b, 0) / history.length);
+  insightAvg.textContent = String(avg);
+
+  const W = 200, BASE_Y = 60, TOP_PAD = 4;
+  const slot = W / HISTORY_LIMIT;
+  const points = history.map((val, i) => ({
+    x: i * slot + slot / 2,
+    y: BASE_Y - (val / 100) * (BASE_Y - TOP_PAD),
+    val,
+  }));
+
+  let markup = `<line x1="0" y1="${BASE_Y}" x2="${W}" y2="${BASE_Y}" class="insight-baseline" />`;
+
+  if (points.length > 1) {
+    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+    const last = points[points.length - 1];
+    const areaPath = `${linePath} L ${last.x.toFixed(2)} ${BASE_Y} L ${points[0].x.toFixed(2)} ${BASE_Y} Z`;
+    markup += `<path d="${areaPath}" class="insight-area" />`;
+    markup += `<path d="${linePath}" class="insight-line" />`;
+  }
+
+  points.forEach(p => {
+    markup += `<circle class="insight-point" data-value="${p.val}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="2.6" />`;
+  });
+
+  insightChart.innerHTML = markup;
+}
+
+renderInsightChart();

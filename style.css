@@ -715,7 +715,7 @@ body {
 }
 
 .check {
-  font-size: 46px;
+  display: flex;
   color: var(--success);
 }
 
@@ -840,7 +840,7 @@ body {
   position: relative;
   display: none;
   font-family: 'DotGothic16', 'Consolas', monospace;
-  font-size: 64px;
+  font-size: 88px;
   font-weight: 400;
   letter-spacing: 10px;
   color: var(--text-primary);

@@ -17,6 +17,82 @@ function enableTapFeedback(selector) {
 }
 enableTapFeedback('.key, .home-btn, .logout-btn, .scan-card, .proceed-btn, .scan-action, .feedback-btn');
 
+/* ---------------- Audio effects (synthesized, no assets) ---------------- */
+let audioCtx = null;
+function getAudioCtx() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone({ freq = 440, freqEnd = null, duration = 0.15, type = 'sine', gain = 0.12, delay = 0 }) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const startTime = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  if (freqEnd !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 1), startTime + duration);
+  amp.gain.setValueAtTime(0, startTime);
+  amp.gain.linearRampToValueAtTime(gain, startTime + 0.008);
+  amp.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(amp);
+  amp.connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+
+function playChime(notes, { noteDuration = 0.12, gap = 0.09, type = 'sine', gain = 0.13 } = {}) {
+  notes.forEach((freq, i) => playTone({ freq, duration: noteDuration, type, gain, delay: i * gap }));
+}
+
+const sfx = {
+  holdTick: () => playTone({ freq: 320, duration: 0.07, type: 'sine', gain: 0.08 }),
+  holdSuccess: () => playChime([660, 880, 1100], { noteDuration: 0.1, gap: 0.08, gain: 0.15 }),
+  scanPing: () => playTone({ freq: 260, freqEnd: 900, duration: 0.32, type: 'sine', gain: 0.09 }),
+  notDetected: () => playChime([260, 170], { noteDuration: 0.15, gap: 0.13, type: 'square', gain: 0.08 }),
+  detected: () => playChime([440, 660, 880], { noteDuration: 0.11, gap: 0.09, gain: 0.14 }),
+  calcTick: () => playTone({ freq: 520, duration: 0.06, type: 'sine', gain: 0.05 }),
+  flickerTick: () => playTone({ freq: 800 + Math.random() * 500, duration: 0.02, type: 'square', gain: 0.03 }),
+  countTick: () => playTone({ freq: 700, duration: 0.03, type: 'sine', gain: 0.05 }),
+  countLock: () => playChime([523, 784], { noteDuration: 0.14, gap: 0.1, gain: 0.16 }),
+};
+
+// A continuous rising tone while holding the thumb sensor, tracking ring progress.
+let holdOsc = null;
+let holdOscGain = null;
+
+function startHoldTone() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  holdOsc = ctx.createOscillator();
+  holdOscGain = ctx.createGain();
+  holdOsc.type = 'sine';
+  holdOsc.frequency.value = 280;
+  holdOscGain.gain.value = 0;
+  holdOsc.connect(holdOscGain);
+  holdOscGain.connect(ctx.destination);
+  holdOsc.start();
+  holdOscGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.08);
+}
+
+function updateHoldTone(fraction) {
+  if (!holdOsc || !audioCtx) return;
+  holdOsc.frequency.setTargetAtTime(280 + fraction * 500, audioCtx.currentTime, 0.06);
+}
+
+function stopHoldTone() {
+  if (!holdOsc || !audioCtx) return;
+  const ctx = audioCtx;
+  holdOscGain.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+  holdOsc.stop(ctx.currentTime + 0.25);
+  holdOsc = null;
+  holdOscGain = null;
+}
+
 /* ---------------- Clock ---------------- */
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -175,6 +251,7 @@ function holdStep(ts) {
   const elapsed = ts - holdStart;
   const fraction = Math.min(1, elapsed / HOLD_MS);
   setRing(fraction);
+  updateHoldTone(fraction);
   if (fraction >= 1) {
     completeScan();
     return;
@@ -188,6 +265,8 @@ function startHold() {
   holdStart = null;
   thumbBtn.classList.add('holding');
   thumbSub.textContent = 'Keep holding...';
+  sfx.holdTick();
+  startHoldTone();
   holdRAF = requestAnimationFrame(holdStep);
 }
 
@@ -198,6 +277,7 @@ function cancelHold() {
   thumbBtn.classList.remove('holding');
   setRing(0);
   thumbSub.textContent = 'Touch and hold sensor';
+  stopHoldTone();
 }
 
 function completeScan() {
@@ -207,6 +287,8 @@ function completeScan() {
   thumbBtn.classList.add('success');
   thumbSub.style.opacity = '0';
   thumbSuccess.classList.add('show');
+  stopHoldTone();
+  sfx.holdSuccess();
 }
 
 function resetThumbScreen() {
@@ -240,11 +322,16 @@ const CALC_MS = 3000;
 let attempts = 0;
 let finished = false;
 
+let scanPingInterval = null;
+let calcTickInterval = null;
+
 function resetDetectScreen() {
   attempts = 0;
   finished = false;
   clearInterval(flickerInterval);
   clearTimeout(flickerTimer);
+  clearInterval(scanPingInterval);
+  clearInterval(calcTickInterval);
   scanField.classList.remove('scanning', 'detected', 'not-detected');
   padStatus.className = 'detect-status';
   padStatus.textContent = '';
@@ -268,18 +355,24 @@ function runScan() {
   scanField.classList.remove('detected', 'not-detected');
   scanField.classList.add('scanning');
 
+  sfx.scanPing();
+  scanPingInterval = setInterval(() => sfx.scanPing(), 1000);
+
   setTimeout(() => {
+    clearInterval(scanPingInterval);
     attempts++;
     if (attempts <= missCount) {
       scanField.classList.add('not-detected');
       padStatus.textContent = 'Not Detected';
       padStatus.classList.add('not-detected');
       scanAction.disabled = false;
+      sfx.notDetected();
     } else {
       scanField.classList.add('detected');
       padStatus.textContent = 'Detected';
       padStatus.classList.add('detected');
       finished = true;
+      sfx.detected();
       setTimeout(runCalculation, 650);
     }
   }, SCAN_MS);
@@ -289,7 +382,13 @@ function runCalculation() {
   padStatus.className = 'detect-status calculating';
   padStatus.textContent = 'Calculating...';
 
-  setTimeout(startNumberReveal, CALC_MS);
+  sfx.calcTick();
+  calcTickInterval = setInterval(() => sfx.calcTick(), 1000);
+
+  setTimeout(() => {
+    clearInterval(calcTickInterval);
+    startNumberReveal();
+  }, CALC_MS);
 }
 
 const FLICKER_MS = 3000;
@@ -303,6 +402,7 @@ function startNumberReveal() {
 
   flickerInterval = setInterval(() => {
     resultNumber.textContent = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+    sfx.flickerTick();
   }, 80);
 
   flickerTimer = setTimeout(() => {
@@ -315,12 +415,17 @@ function runCountUp() {
   const target = parseInt(targetNumber, 10);
   const duration = 5000;
   const startTime = performance.now();
+  let lastValue = -1;
 
   function tick(now) {
     const t = Math.min(1, (now - startTime) / duration);
     const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic: fast start, slow finish
     const current = Math.round(eased * target);
-    resultNumber.textContent = String(current).padStart(2, '0');
+    if (current !== lastValue) {
+      resultNumber.textContent = String(current).padStart(2, '0');
+      sfx.countTick();
+      lastValue = current;
+    }
     if (t < 1) {
       requestAnimationFrame(tick);
     } else {
@@ -328,6 +433,7 @@ function runCountUp() {
       scanAction.classList.add('hidden');
       recordScanResult(target);
       showResultFeedback();
+      sfx.countLock();
     }
   }
   requestAnimationFrame(tick);

@@ -863,26 +863,20 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  transition: opacity .2s, transform .2s;
+  color: var(--text-primary);
+  transition: opacity .2s, transform .2s, background .2s;
 }
 
 .feedback-btn:active {
   transform: scale(.92);
+  background: var(--accent-soft);
 }
 
 .feedback-btn:disabled {
   opacity: .4;
-}
-
-.feedback-correct {
-  background: var(--success);
-}
-
-.feedback-wrong {
-  background: var(--danger);
 }

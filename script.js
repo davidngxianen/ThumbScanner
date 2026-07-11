@@ -243,6 +243,8 @@ let finished = false;
 function resetDetectScreen() {
   attempts = 0;
   finished = false;
+  clearInterval(flickerInterval);
+  clearTimeout(flickerTimer);
   scanField.classList.remove('scanning', 'detected', 'not-detected');
   padStatus.className = 'detect-status';
   padStatus.textContent = '';
@@ -269,7 +271,6 @@ function runScan() {
   setTimeout(() => {
     attempts++;
     if (attempts <= missCount) {
-      scanField.classList.remove('scanning');
       scanField.classList.add('not-detected');
       padStatus.textContent = 'Not Detected';
       padStatus.classList.add('not-detected');
@@ -291,11 +292,26 @@ function runCalculation() {
   setTimeout(startNumberReveal, CALC_MS);
 }
 
+const FLICKER_MS = 3000;
+let flickerInterval = null;
+let flickerTimer = null;
+
 function startNumberReveal() {
   padStatus.className = 'detect-status';
   padStatus.textContent = '';
   resultNumber.classList.add('show');
 
+  flickerInterval = setInterval(() => {
+    resultNumber.textContent = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+  }, 80);
+
+  flickerTimer = setTimeout(() => {
+    clearInterval(flickerInterval);
+    runCountUp();
+  }, FLICKER_MS);
+}
+
+function runCountUp() {
   const target = parseInt(targetNumber, 10);
   const duration = 5000;
   const startTime = performance.now();

@@ -56,7 +56,6 @@ const sfx = {
   notDetected: () => playChime([260, 170], { noteDuration: 0.15, gap: 0.13, type: 'square', gain: 0.08 }),
   detected: () => playChime([440, 660, 880], { noteDuration: 0.11, gap: 0.09, gain: 0.14 }),
   calcTick: () => playTone({ freq: 520, duration: 0.06, type: 'sine', gain: 0.05 }),
-  flickerTick: () => playTone({ freq: 800 + Math.random() * 500, duration: 0.02, type: 'square', gain: 0.03 }),
   countTick: () => playTone({ freq: 700, duration: 0.03, type: 'sine', gain: 0.05 }),
   countLock: () => playChime([523, 784], { noteDuration: 0.14, gap: 0.1, gain: 0.16 }),
 };
@@ -233,6 +232,7 @@ const thumbBtn = document.getElementById('thumb-btn');
 const ringProgress = document.getElementById('ring-progress');
 const thumbSub = document.getElementById('thumb-sub');
 const thumbSuccess = document.getElementById('thumb-success');
+const thumbTitle = document.getElementById('thumb-title');
 
 const RING_CIRCUMFERENCE = 339.3;
 const HOLD_MS = 3000;
@@ -286,6 +286,7 @@ function completeScan() {
   thumbBtn.classList.remove('holding');
   thumbBtn.classList.add('success', 'hidden');
   thumbSub.style.opacity = '0';
+  thumbTitle.style.opacity = '0';
   thumbSuccess.classList.add('show');
   stopHoldTone();
   sfx.holdSuccess();
@@ -298,6 +299,7 @@ function resetThumbScreen() {
   setRing(0);
   thumbSub.style.opacity = '1';
   thumbSub.textContent = 'Touch and hold sensor';
+  thumbTitle.style.opacity = '1';
   thumbSuccess.classList.remove('show');
 }
 
@@ -380,37 +382,30 @@ function runScan() {
   }, SCAN_MS);
 }
 
+let flickerInterval = null;
+let flickerTimer = null;
+
+// "Calculating..." and the random-number flicker run together, at the same time.
 function runCalculation() {
   padStatus.className = 'detect-status calculating';
   padStatus.textContent = 'Calculating...';
+  resultNumber.classList.add('show');
 
   sfx.calcTick();
   calcTickInterval = setInterval(() => sfx.calcTick(), 1000);
 
-  setTimeout(() => {
-    clearInterval(calcTickInterval);
-    startNumberReveal();
-  }, CALC_MS);
-}
-
-const FLICKER_MS = 3000;
-let flickerInterval = null;
-let flickerTimer = null;
-
-function startNumberReveal() {
-  padStatus.className = 'detect-status';
-  padStatus.textContent = '';
-  resultNumber.classList.add('show');
-
   flickerInterval = setInterval(() => {
     resultNumber.textContent = String(Math.floor(Math.random() * 53)).padStart(2, '0');
-    sfx.flickerTick();
+    sfx.countTick();
   }, 80);
 
   flickerTimer = setTimeout(() => {
+    clearInterval(calcTickInterval);
     clearInterval(flickerInterval);
+    padStatus.className = 'detect-status';
+    padStatus.textContent = '';
     runCountUp();
-  }, FLICKER_MS);
+  }, CALC_MS);
 }
 
 function runCountUp() {

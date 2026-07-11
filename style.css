@@ -53,11 +53,11 @@ body {
   opacity: 1;
 }
 
-.screen.unlock-transition.active {
-  animation: unlockIn .55s cubic-bezier(.22, 1, .36, 1);
+.screen.screen-reveal.active {
+  animation: screenRevealIn .55s cubic-bezier(.22, 1, .36, 1);
 }
 
-@keyframes unlockIn {
+@keyframes screenRevealIn {
   0% { opacity: 0; transform: translateY(26px) scale(.96); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }

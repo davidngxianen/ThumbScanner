@@ -39,14 +39,27 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
+// Same crossfade as showScreen, plus a slide/scale reveal animation on the
+// incoming screen — used for the more deliberate transitions (welcome to
+// lock, lock to home) rather than every screen switch.
+function showScreenWithReveal(id) {
+  const el = document.getElementById(id);
+  el.classList.add('screen-reveal');
+  showScreen(id);
+  el.addEventListener('animationend', () => el.classList.remove('screen-reveal'), { once: true });
+}
+
 /* ---------------- Welcome / splash ---------------- */
 const WELCOME_MS = 4000;
-let welcomeTimer = setTimeout(() => showScreen('screen-lock'), WELCOME_MS);
 
-document.getElementById('screen-welcome').addEventListener('click', () => {
+function leaveWelcome() {
   clearTimeout(welcomeTimer);
-  showScreen('screen-lock');
-});
+  showScreenWithReveal('screen-lock');
+}
+
+let welcomeTimer = setTimeout(leaveWelcome, WELCOME_MS);
+
+document.getElementById('screen-welcome').addEventListener('click', leaveWelcome);
 
 /* ---------------- Lock screen / passcode ---------------- */
 let entered = [];
@@ -119,10 +132,7 @@ function resetLockScreen() {
 
 function unlock() {
   resetLockScreen();
-  const home = document.getElementById('screen-home');
-  home.classList.add('unlock-transition');
-  showScreen('screen-home');
-  home.addEventListener('animationend', () => home.classList.remove('unlock-transition'), { once: true });
+  showScreenWithReveal('screen-home');
 }
 
 document.querySelectorAll('[data-nav-home]').forEach(btn => {
@@ -287,7 +297,7 @@ function startNumberReveal() {
   resultNumber.classList.add('show');
 
   const target = parseInt(targetNumber, 10);
-  const duration = 1800;
+  const duration = 5000;
   const startTime = performance.now();
 
   function tick(now) {

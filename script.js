@@ -129,7 +129,10 @@ const WELCOME_MS = 4000;
 
 function leaveWelcome() {
   clearTimeout(welcomeTimer);
-  showScreenWithReveal('screen-login');
+  // No screen-level reveal here — the login screen's own elements
+  // (mark, wordmark, caution text, login button) already animate in
+  // with their own staggered fade-up delays.
+  showScreen('screen-login');
 }
 
 let welcomeTimer = setTimeout(leaveWelcome, WELCOME_MS);

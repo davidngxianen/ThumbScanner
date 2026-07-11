@@ -119,7 +119,10 @@ function resetLockScreen() {
 
 function unlock() {
   resetLockScreen();
+  const home = document.getElementById('screen-home');
+  home.classList.add('unlock-transition');
   showScreen('screen-home');
+  home.addEventListener('animationend', () => home.classList.remove('unlock-transition'), { once: true });
 }
 
 document.querySelectorAll('[data-nav-home]').forEach(btn => {
@@ -230,7 +233,7 @@ let finished = false;
 function resetDetectScreen() {
   attempts = 0;
   finished = false;
-  scanField.classList.remove('scanning');
+  scanField.classList.remove('scanning', 'detected', 'not-detected');
   padStatus.className = 'detect-status';
   padStatus.textContent = '';
   resultNumber.classList.remove('show');
@@ -250,16 +253,19 @@ function runScan() {
   padStatus.className = 'detect-status';
   padStatus.textContent = 'Scanning...';
   resultNumber.classList.remove('show');
+  scanField.classList.remove('detected', 'not-detected');
   scanField.classList.add('scanning');
 
   setTimeout(() => {
     attempts++;
     if (attempts <= missCount) {
       scanField.classList.remove('scanning');
+      scanField.classList.add('not-detected');
       padStatus.textContent = 'Not Detected';
       padStatus.classList.add('not-detected');
       scanAction.disabled = false;
     } else {
+      scanField.classList.add('detected');
       padStatus.textContent = 'Detected';
       padStatus.classList.add('detected');
       finished = true;
@@ -280,19 +286,25 @@ function startNumberReveal() {
   padStatus.textContent = '';
   resultNumber.classList.add('show');
 
-  let ticks = 0;
-  const maxTicks = 14;
-  const interval = setInterval(() => {
-    resultNumber.textContent = String(Math.floor(Math.random() * 100)).padStart(2, '0');
-    ticks++;
-    if (ticks >= maxTicks) {
-      clearInterval(interval);
+  const target = parseInt(targetNumber, 10);
+  const duration = 1800;
+  const startTime = performance.now();
+
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic: fast start, slow finish
+    const current = Math.round(eased * target);
+    resultNumber.textContent = String(current).padStart(2, '0');
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
       resultNumber.textContent = targetNumber;
       scanAction.classList.add('hidden');
-      recordScanResult(parseInt(targetNumber, 10));
+      recordScanResult(target);
       showResultFeedback();
     }
-  }, 90);
+  }
+  requestAnimationFrame(tick);
 }
 
 /* ---------------- Result correctness feedback ---------------- */

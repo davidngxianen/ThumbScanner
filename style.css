@@ -53,6 +53,15 @@ body {
   opacity: 1;
 }
 
+.screen.unlock-transition.active {
+  animation: unlockIn .55s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes unlockIn {
+  0% { opacity: 0; transform: translateY(26px) scale(.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ---------- Shared: home button ---------- */
 
 .home-btn {
@@ -787,12 +796,13 @@ body {
 }
 
 .grid-pulse {
+  --grid-color: rgba(255, 255, 255, .4);
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background-image:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, .4) 0 1px, transparent 1px 22px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, .4) 0 1px, transparent 1px 22px);
+    repeating-linear-gradient(0deg, var(--grid-color) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, var(--grid-color) 0 1px, transparent 1px 22px);
   -webkit-mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
   mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
   opacity: 0;
@@ -802,6 +812,14 @@ body {
 .grid-pulse:first-child {
   opacity: .3;
   transform: scale(.9);
+}
+
+.scan-field.detected .grid-pulse {
+  --grid-color: rgba(31, 157, 85, .55);
+}
+
+.scan-field.not-detected .grid-pulse {
+  --grid-color: rgba(229, 67, 60, .55);
 }
 
 .scan-field.scanning .grid-pulse {
@@ -846,7 +864,9 @@ body {
 
 .result-feedback {
   display: flex;
-  gap: 22px;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   opacity: 0;
   pointer-events: none;
   transform: scale(.8);
@@ -857,6 +877,19 @@ body {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
+}
+
+.feedback-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: 22px;
 }
 
 .feedback-btn {

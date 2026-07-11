@@ -1,6 +1,22 @@
 // prevent iOS long-press callout / context menu from breaking the illusion
 document.addEventListener('contextmenu', e => e.preventDefault());
 
+/* ---------------- Tap feedback (mouse + touch, consistent) ---------------- */
+// CSS :active alone is unreliable on mobile browsers (notably iOS Safari
+// won't fire it on a plain tap). Pointer events cover mouse, touch and pen
+// uniformly, so drive a .pressed class from those instead.
+function enableTapFeedback(selector) {
+  document.querySelectorAll(selector).forEach(el => {
+    const press = () => el.classList.add('pressed');
+    const release = () => el.classList.remove('pressed');
+    el.addEventListener('pointerdown', press);
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('pointerleave', release);
+  });
+}
+enableTapFeedback('.key, .home-btn, .logout-btn, .scan-card, .proceed-btn, .scan-action, .feedback-btn');
+
 /* ---------------- Clock ---------------- */
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];

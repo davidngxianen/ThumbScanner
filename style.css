@@ -71,7 +71,7 @@ body {
   z-index: 5;
 }
 
-.home-btn:active {
+.home-btn:active, .home-btn.pressed {
   background: var(--accent-soft);
   color: var(--text-primary);
 }
@@ -264,7 +264,7 @@ body {
   line-height: 1;
 }
 
-.key:active {
+.key:active, .key.pressed {
   background: var(--accent-soft);
 }
 
@@ -287,7 +287,7 @@ body {
   color: var(--text-secondary);
 }
 
-.key-del:active {
+.key-del:active, .key-del.pressed {
   opacity: .5;
 }
 
@@ -338,7 +338,7 @@ body {
   border-radius: 20px;
 }
 
-.logout-btn:active {
+.logout-btn:active, .logout-btn.pressed {
   background: var(--accent-soft);
 }
 
@@ -372,7 +372,7 @@ body {
   text-align: left;
 }
 
-.scan-card:active {
+.scan-card:active, .scan-card.pressed {
   background: var(--accent-soft);
 }
 
@@ -728,7 +728,7 @@ body {
   text-transform: uppercase;
 }
 
-.proceed-btn:active, .scan-action:active {
+.proceed-btn:active, .scan-action:active, .proceed-btn.pressed, .scan-action.pressed {
   background: var(--accent-soft);
 }
 
@@ -872,7 +872,7 @@ body {
   transition: opacity .2s, transform .2s, background .2s;
 }
 
-.feedback-btn:active {
+.feedback-btn:active, .feedback-btn.pressed {
   transform: scale(.92);
   background: var(--accent-soft);
 }

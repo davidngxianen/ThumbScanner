@@ -15,7 +15,7 @@ function enableTapFeedback(selector) {
     el.addEventListener('pointerleave', release);
   });
 }
-enableTapFeedback('.key, .home-btn, .logout-btn, .scan-card, .proceed-btn, .scan-action, .feedback-btn');
+enableTapFeedback('.key, .home-btn, .logout-btn, .scan-card, .proceed-btn, .scan-action, .feedback-btn, .login-btn');
 
 /* ---------------- Audio effects (synthesized, no assets) ---------------- */
 let audioCtx = null;
@@ -129,12 +129,29 @@ const WELCOME_MS = 4000;
 
 function leaveWelcome() {
   clearTimeout(welcomeTimer);
-  showScreenWithReveal('screen-lock');
+  showScreenWithReveal('screen-login');
 }
 
 let welcomeTimer = setTimeout(leaveWelcome, WELCOME_MS);
 
 document.getElementById('screen-welcome').addEventListener('click', leaveWelcome);
+
+function goToWelcome() {
+  showScreenWithReveal('screen-welcome');
+  clearTimeout(welcomeTimer);
+  welcomeTimer = setTimeout(leaveWelcome, WELCOME_MS);
+}
+
+/* ---------------- Login ---------------- */
+document.getElementById('login-btn').addEventListener('click', () => {
+  resetLockScreen();
+  showScreenWithReveal('screen-lock');
+});
+
+document.getElementById('lock-back-btn').addEventListener('click', () => {
+  resetLockScreen();
+  showScreenWithReveal('screen-login');
+});
 
 /* ---------------- Lock screen / passcode ---------------- */
 let entered = [];
@@ -218,7 +235,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   resetLockScreen();
   resetThumbScreen();
   resetDetectScreen();
-  showScreen('screen-lock');
+  goToWelcome();
 });
 
 document.getElementById('start-scan-card').addEventListener('click', () => {

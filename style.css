@@ -89,7 +89,7 @@ body {
 
 /* ---------- Welcome / splash ---------- */
 
-#screen-welcome {
+#screen-welcome, #screen-login {
   background: var(--bg);
   justify-content: center;
   align-items: center;
@@ -97,6 +97,26 @@ body {
   text-align: center;
   padding-left: 40px;
   padding-right: 40px;
+}
+
+.login-btn {
+  margin-top: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  padding: 12px 44px;
+  border-radius: 26px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: welcomeFadeUp .5s ease forwards;
+  animation-delay: 1.8s;
+}
+
+.login-btn:active, .login-btn.pressed {
+  background: var(--accent-soft);
 }
 
 .welcome-mark {
@@ -217,6 +237,10 @@ body {
   border: none;
   background: transparent;
   z-index: 7;
+}
+
+.lock-back-btn {
+  z-index: 8;
 }
 
 .lock-brand {

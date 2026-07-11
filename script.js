@@ -50,8 +50,6 @@ function playChime(notes, { noteDuration = 0.12, gap = 0.09, type = 'sine', gain
 }
 
 const sfx = {
-  holdTick: () => playTone({ freq: 320, duration: 0.07, type: 'sine', gain: 0.08 }),
-  holdSuccess: () => playChime([660, 880, 1100], { noteDuration: 0.1, gap: 0.08, gain: 0.15 }),
   scanPing: () => playTone({ freq: 260, freqEnd: 900, duration: 0.32, type: 'sine', gain: 0.09 }),
   notDetected: () => playChime([260, 170], { noteDuration: 0.15, gap: 0.13, type: 'square', gain: 0.08 }),
   detected: () => playChime([440, 660, 880], { noteDuration: 0.11, gap: 0.09, gain: 0.14 }),
@@ -59,38 +57,6 @@ const sfx = {
   countTick: () => playTone({ freq: 700, duration: 0.03, type: 'sine', gain: 0.05 }),
   countLock: () => playChime([523, 784], { noteDuration: 0.14, gap: 0.1, gain: 0.16 }),
 };
-
-// A continuous rising tone while holding the thumb sensor, tracking ring progress.
-let holdOsc = null;
-let holdOscGain = null;
-
-function startHoldTone() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  holdOsc = ctx.createOscillator();
-  holdOscGain = ctx.createGain();
-  holdOsc.type = 'sine';
-  holdOsc.frequency.value = 280;
-  holdOscGain.gain.value = 0;
-  holdOsc.connect(holdOscGain);
-  holdOscGain.connect(ctx.destination);
-  holdOsc.start();
-  holdOscGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.08);
-}
-
-function updateHoldTone(fraction) {
-  if (!holdOsc || !audioCtx) return;
-  holdOsc.frequency.setTargetAtTime(280 + fraction * 500, audioCtx.currentTime, 0.06);
-}
-
-function stopHoldTone() {
-  if (!holdOsc || !audioCtx) return;
-  const ctx = audioCtx;
-  holdOscGain.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
-  holdOsc.stop(ctx.currentTime + 0.25);
-  holdOsc = null;
-  holdOscGain = null;
-}
 
 /* ---------------- Clock ---------------- */
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -250,7 +216,6 @@ function holdStep(ts) {
   const elapsed = ts - holdStart;
   const fraction = Math.min(1, elapsed / HOLD_MS);
   setRing(fraction);
-  updateHoldTone(fraction);
   if (fraction >= 1) {
     completeScan();
     return;
@@ -264,8 +229,6 @@ function startHold() {
   holdStart = null;
   thumbBtn.classList.add('holding');
   thumbSub.textContent = 'Keep holding...';
-  sfx.holdTick();
-  startHoldTone();
   holdRAF = requestAnimationFrame(holdStep);
 }
 
@@ -276,7 +239,6 @@ function cancelHold() {
   thumbBtn.classList.remove('holding');
   setRing(0);
   thumbSub.textContent = 'Touch and hold sensor';
-  stopHoldTone();
 }
 
 function completeScan() {
@@ -287,8 +249,6 @@ function completeScan() {
   thumbSub.style.opacity = '0';
   thumbTitle.style.opacity = '0';
   thumbSuccess.classList.add('show');
-  stopHoldTone();
-  sfx.holdSuccess();
 }
 
 function resetThumbScreen() {

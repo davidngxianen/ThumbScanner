@@ -1,10 +1,7 @@
 // prevent iOS long-press callout / context menu from breaking the illusion
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-/* ---------------- Tap feedback (mouse + touch, consistent) ---------------- */
-// CSS :active alone is unreliable on mobile browsers (notably iOS Safari
-// won't fire it on a plain tap). Pointer events cover mouse, touch and pen
-// uniformly, so drive a .pressed class from those instead.
+/* ---------------- Tap feedback ---------------- */
 function enableTapFeedback(selector) {
   document.querySelectorAll(selector).forEach(el => {
     const press = () => el.classList.add('pressed');
@@ -81,9 +78,6 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-// Same crossfade as showScreen, plus a slide/scale reveal animation on the
-// incoming screen — used for the more deliberate transitions (logout to
-// login, lock to home) rather than every screen switch.
 function showScreenWithReveal(id) {
   const el = document.getElementById(id);
   el.classList.add('screen-reveal');
@@ -111,11 +105,9 @@ function renderDots() {
   dots.forEach((d, i) => d.classList.toggle('filled', i < entered.length));
 }
 
-let missCount = 0;      // digit 1 - 1: number of "not detected" scans before "detected"
-let targetNumber = '00'; // digits 2-3: number revealed on detection
+let missCount = 0;
+let targetNumber = '00';
 
-// hidden gate: the passcode only works if the last two digits entered
-// are 1 and 9. No visual cue is given.
 function isSecretCode(entered) {
   return entered[4] === '1' && entered[5] === '9';
 }
@@ -128,7 +120,6 @@ function handleDigit(d) {
     if (isSecretCode(entered)) {
       missCount = parseInt(entered[0], 10) - 1;
       targetNumber = entered[1] + entered[2];
-      // digit 4 is intentionally unused
       setTimeout(unlock, 250);
     } else {
       setTimeout(rejectPasscode, 250);
@@ -186,20 +177,19 @@ document.getElementById('start-scan-card').addEventListener('click', () => {
 
 /* ---------------- Thumbprint hold-to-scan ---------------- */
 const thumbBtn = document.getElementById('thumb-btn');
-const ringProgress = document.getElementById('ring-progress');
+const thumbProgressEl = document.getElementById('thumb-progress');
 const thumbSub = document.getElementById('thumb-sub');
 const thumbSuccess = document.getElementById('thumb-success');
 const thumbTitle = document.getElementById('thumb-title');
 
-const RING_CIRCUMFERENCE = 339.3;
 const HOLD_MS = 3000;
 
 let holdRAF = null;
 let holdStart = null;
 let holding = false;
 
-function setRing(fraction) {
-  ringProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - fraction));
+function setProgress(fraction) {
+  thumbProgressEl.style.width = `${Math.min(100, fraction * 100)}%`;
 }
 
 function holdStep(ts) {
@@ -207,7 +197,7 @@ function holdStep(ts) {
   if (holdStart === null) holdStart = ts;
   const elapsed = ts - holdStart;
   const fraction = Math.min(1, elapsed / HOLD_MS);
-  setRing(fraction);
+  setProgress(fraction);
   if (fraction >= 1) {
     completeScan();
     return;
@@ -229,7 +219,7 @@ function cancelHold() {
   holding = false;
   cancelAnimationFrame(holdRAF);
   thumbBtn.classList.remove('holding');
-  setRing(0);
+  setProgress(0);
   thumbSub.textContent = 'Touch and hold sensor';
 }
 
@@ -248,7 +238,7 @@ function resetThumbScreen() {
   holding = false;
   cancelAnimationFrame(holdRAF);
   thumbBtn.classList.remove('holding', 'success', 'hidden');
-  setRing(0);
+  setProgress(0);
   thumbSub.style.opacity = '1';
   thumbSub.textContent = 'Touch and hold sensor';
   thumbTitle.style.opacity = '1';
@@ -278,6 +268,8 @@ let finished = false;
 
 let scanPingInterval = null;
 let calcTickInterval = null;
+let flickerInterval = null;
+let flickerTimer = null;
 
 function resetDetectScreen() {
   attempts = 0;
@@ -334,10 +326,6 @@ function runScan() {
   }, SCAN_MS);
 }
 
-let flickerInterval = null;
-let flickerTimer = null;
-
-// "Calculating..." and the random-number flicker run together, at the same time.
 function runCalculation() {
   padStatus.className = 'detect-status calculating';
   padStatus.textContent = 'Calculating...';
@@ -368,7 +356,7 @@ function runCountUp() {
 
   function tick(now) {
     const t = Math.min(1, (now - startTime) / duration);
-    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic: fast start, slow finish
+    const eased = 1 - Math.pow(1 - t, 3);
     const current = Math.round(eased * target);
     if (current !== lastValue) {
       resultNumber.textContent = String(current).padStart(2, '0');
@@ -436,6 +424,7 @@ const HISTORY_KEY = 'vitalscan-scan-history';
 const HISTORY_LIMIT = 20;
 
 const insightBadge = document.getElementById('insight-badge');
+const insightBadgeText = document.getElementById('insight-badge-text');
 const insightCount = document.getElementById('insight-count');
 const insightAvg = document.getElementById('insight-avg');
 const insightAccuracy = document.getElementById('insight-accuracy');
@@ -523,9 +512,12 @@ function renderInsightChart() {
   const reviewed = history.filter(e => e.correct !== null);
   if (reviewed.length) {
     const correctCount = reviewed.filter(e => e.correct).length;
-    insightAccuracy.textContent = `${Math.round((correctCount / reviewed.length) * 100)} %`;
+    const pct = Math.round((correctCount / reviewed.length) * 100);
+    insightAccuracy.textContent = `${pct}%`;
+    insightBadgeText.textContent = `${pct}% accuracy`;
   } else {
     insightAccuracy.textContent = '--';
+    insightBadgeText.textContent = '-- accuracy';
   }
 
   const W = 200, BASE_Y = 60, TOP_PAD = 4;
@@ -549,7 +541,7 @@ function renderInsightChart() {
 
   points.forEach(p => {
     const statusClass = p.correct === true ? 'correct' : p.correct === false ? 'wrong' : '';
-    markup += `<circle class="insight-point ${statusClass}" data-value="${p.val}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="2.6" />`;
+    markup += `<circle class="insight-point ${statusClass}" data-value="${p.val}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="2.5" />`;
   });
 
   insightChart.innerHTML = markup;

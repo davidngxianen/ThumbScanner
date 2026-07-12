@@ -350,7 +350,12 @@ body {
 
 /* ---------- Detection screen ---------- */
 
-#screen-detect { background: var(--bg); justify-content: center; gap: 40px; }
+#screen-detect {
+  background: var(--bg);
+  justify-content: flex-start;
+  gap: 40px;
+  padding-top: calc(env(safe-area-inset-top) + clamp(60px, 11vh, 84px));
+}
 
 .detect-status {
   font-size: 14px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase;
@@ -373,8 +378,14 @@ body {
   overflow: hidden;
 }
 
+.scan-field.scanning { animation: fieldBlinkScan 1s ease-in-out infinite; }
 .scan-field.detected { animation: bgFlickerDetected .7s ease-in-out infinite; }
 .scan-field.not-detected { animation: bgFlickerNotDetected .7s ease-in-out infinite; }
+
+@keyframes fieldBlinkScan {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(21, 20, 15, .22); }
+}
 
 @keyframes bgFlickerDetected {
   0%, 100% { background-color: var(--success-soft); }
@@ -413,14 +424,30 @@ body {
   clip-path: circle(0% at 50% 50%);
 }
 
-/* scanning: grey -> orange ripple, revealed outward from the center */
+/* scanning only: reset all grid-pulse layers, then show/animate just
+   one of them, since stacking multiple identical translucent layers
+   would darken the color beyond what's intended. dots swap to the
+   field's neutral background color, while the field background swaps
+   to the dots' neutral color, at the same time (see fieldBlinkScan
+   above for the background half of this swap). */
 .scan-field.scanning .grid-pulse {
-  animation: colorRippleScan 1.2s ease-out infinite;
+  opacity: 1;
+  clip-path: none;
+  animation: dotBlinkScan 1s ease-in-out infinite;
+}
+
+/* :where() keeps this at the same specificity as the plain rule
+   above, so it only wins on source order — critical so that once
+   "detected"/"not-detected" is also added (scanning is never
+   removed), those rules cleanly take back over for every layer. */
+.scan-field.scanning .grid-pulse:where(:nth-child(3), :nth-child(4)) {
+  opacity: 0;
+  animation: none;
 }
 
 /* detected / not-detected: dots stay a static, lighter shade of the
    mode's color — the scan-field background flickers instead.
-   animation: none explicitly cancels the scanning ripple, since the
+   animation: none explicitly cancels the scanning blink, since the
    "scanning" class is never removed once a result is reached. */
 .scan-field.detected .grid-pulse {
   --dot-color: rgba(107, 166, 120, .9);
@@ -436,14 +463,9 @@ body {
   animation: none;
 }
 
-.scan-field.scanning .grid-pulse:nth-child(3) { animation-delay: .4s; }
-.scan-field.scanning .grid-pulse:nth-child(4) { animation-delay: .8s; }
-
-@keyframes colorRippleScan {
-  0% { clip-path: circle(0% at 50% 50%); opacity: .9; --dot-color: rgba(180, 178, 170, .6); }
-  35% { clip-path: circle(6% at 50% 50%); }
-  60% { --dot-color: rgba(255, 106, 31, .85); opacity: 1; }
-  100% { clip-path: circle(75% at 50% 50%); opacity: 0; --dot-color: rgba(255, 106, 31, .85); }
+@keyframes dotBlinkScan {
+  0%, 100% { --dot-color: rgba(21, 20, 15, .22); }
+  50% { --dot-color: var(--bg); }
 }
 
 .result-number {

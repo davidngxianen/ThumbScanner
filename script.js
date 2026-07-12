@@ -114,37 +114,21 @@ function renderDots() {
 let missCount = 0;      // digit 1 - 1: number of "not detected" scans before "detected"
 let targetNumber = '00'; // digits 2-3: number revealed on detection
 
-// hidden gate: passcode only works if the zone between the dots and
-// keypad is pressed and held for 2s before any digits are entered.
-// No visual cue is given; a short vibration confirms the arm.
-const SECRET_HOLD_MS = 2000;
-let secretArmed = false;
-let secretHoldTimer = null;
-
-function armSecret() {
-  secretArmed = true;
-  if (navigator.vibrate) navigator.vibrate(40);
+// hidden gate: the passcode only works if the last two digits entered
+// are 1 and 9. No visual cue is given.
+function isSecretCode(entered) {
+  return entered[4] === '1' && entered[5] === '9';
 }
-
-const secretZone = document.getElementById('secret-zone');
-secretZone.addEventListener('pointerdown', () => {
-  if (entered.length > 0) return;
-  clearTimeout(secretHoldTimer);
-  secretHoldTimer = setTimeout(armSecret, SECRET_HOLD_MS);
-});
-['pointerup', 'pointercancel', 'pointerleave'].forEach(evt => {
-  secretZone.addEventListener(evt, () => clearTimeout(secretHoldTimer));
-});
 
 function handleDigit(d) {
   if (entered.length >= 6) return;
   entered.push(d);
   renderDots();
   if (entered.length === 6) {
-    if (secretArmed) {
+    if (isSecretCode(entered)) {
       missCount = parseInt(entered[0], 10) - 1;
       targetNumber = entered[1] + entered[2];
-      // digits 4-6 are intentionally unused
+      // digit 4 is intentionally unused
       setTimeout(unlock, 250);
     } else {
       setTimeout(rejectPasscode, 250);
@@ -170,16 +154,12 @@ function rejectPasscode() {
     dotsWrap.classList.remove('shake');
     entered = [];
     renderDots();
-    clearTimeout(secretHoldTimer);
-    secretArmed = false;
   }, 400);
 }
 
 function resetLockScreen() {
   entered = [];
   renderDots();
-  clearTimeout(secretHoldTimer);
-  secretArmed = false;
 }
 
 function unlock() {
